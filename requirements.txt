@@ -1,0 +1,6 @@
+PyQt6>=6.5
+Jinja2>=3.1
+matplotlib>=3.5
+
+# Optional, for building the standalone executable from UAVDesignTool.spec:
+# pyinstaller>=6.0

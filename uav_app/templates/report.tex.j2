@@ -1,0 +1,92 @@
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+
+{% if not include_page_numbers %}
+\pagestyle{empty}
+{% endif %}
+
+\title{ {{ project.name }} }
+\author{ {{ project.author }} }
+
+\begin{document}
+
+\begin{titlepage}
+\vspace*{\fill}
+\begin{center}
+{\huge\bfseries {{ project.name }} \par}
+\vspace{1cm}
+{\Large {{ project.author }} \par}
+{% if date_str %}
+\vspace{0.8cm}
+{\large {{ date_str }} \par}
+{% endif %}
+{% if project.image %}
+\vspace{1.5cm}
+\includegraphics[width=0.55\textwidth,keepaspectratio]{ {{- project.image -}} }
+{% endif %}
+\end{center}
+\vspace*{\fill}
+\end{titlepage}
+
+{% if include_page_numbers %}
+\tableofcontents
+\newpage
+{% endif %}
+
+{% if project.summary %}
+\section*{Abstract}
+\addcontentsline{toc}{section}{Abstract}
+{{ project.summary }}
+{% endif %}
+
+{% for stage in stages %}
+\section{ {{ stage.name }} Design}
+
+{% if stage.parameters %}
+\subsection{Parameters}
+\begin{longtable}{@{}p{0.42\textwidth}p{0.52\textwidth}@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+\endhead
+{% for param in stage.parameters %}
+{{ param.name }} & {{ param.value }} \\
+{% endfor %}
+\bottomrule
+\end{longtable}
+{% endif %}
+
+{% if stage.notes %}
+\subsection{Notes}
+{% for note in stage.notes %}
+\subsubsection{ {{ note.name }} }
+{{ note.content }}
+
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+{% if all_images %}
+\section{Figures}
+{% for img in all_images %}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth,keepaspectratio]{ {{- img.path -}} }
+{% if img.caption %}
+\caption{ {{ img.caption }} }
+{% endif %}
+\end{figure}
+{% endfor %}
+{% endif %}
+
+\end{document}
