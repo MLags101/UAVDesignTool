@@ -229,6 +229,8 @@ class ProjectController:
         self._setup_project_ui(is_loaded=True)
 
     def _setup_project_ui(self, is_loaded=False):
+        if getattr(self, "optimization_workspace", None):
+            self.optimization_workspace.shutdown()
         self._loading = True
         # Keep each project's bundled copy of uavlib current with the app's.
         try:
@@ -236,6 +238,9 @@ class ProjectController:
         except OSError:
             pass
         self.view.init_project_ui()
+        from .optimization_view import OptimizationWorkspace
+        self.optimization_workspace = OptimizationWorkspace(self)
+        self.view.central_stack.addWidget(self.optimization_workspace)
         self._apply_theme(self.theme_name, announce=False)
         self.view.setWindowTitle(f"UAV Design Organizer — {self.model.data.name}")
         self.view.project_name_label.setText(self.model.data.name)
@@ -304,6 +309,8 @@ class ProjectController:
             "Project loaded." if is_loaded else "Project created.", 3000)
 
     def _on_close(self, event):
+        if getattr(self, "optimization_workspace", None):
+            self.optimization_workspace.shutdown()
         if not self.view.project_ui_ready or not self._dirty:
             event.accept()
             return
@@ -372,8 +379,11 @@ class ProjectController:
     def show_about(self):
         QMessageBox.about(self.view, "About UAV Design Organizer", (
             "<b>UAV Design Organizer</b><br><br>"
-            "A stage-gated design record for fixed wing and multirotor aircraft, "
-            "with an importable Python tool system and LaTeX/Overleaf export.<br><br>"
+            "A stage-gated design record for fixed-wing, multirotor, helicopter, "
+            "lift-plus-cruise and rocket vehicles, with an importable Python tool "
+            "system, an optimization workbench, and LaTeX/Overleaf export.<br><br>"
+            "Optimization results are an engineering preview: a feasible flag means "
+            "the implemented checks passed, not that the vehicle is cleared to fly.<br><br>"
             "Tool scripts define <tt>TOOL_METADATA</tt> and a <tt>run(inputs)</tt> function."
         ))
 

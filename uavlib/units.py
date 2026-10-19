@@ -59,6 +59,10 @@ _FACTORS = {
     },
     "power": {"w": 1.0, "watt": 1.0, "watts": 1.0, "kw": 1000.0, "hp": 745.6999},
     "energy": {"j": 1.0, "wh": 3600.0, "kwh": 3.6e6},
+    "current": {"a": 1.0, "ma": .001},
+    "voltage": {"v": 1.0, "mv": .001},
+    "pressure": {"pa": 1.0, "kpa": 1000., "mpa": 1e6, "psi": 6894.757293},
+    "acceleration": {"m/s^2": 1.0, "m/s2": 1.0, "ft/s^2": .3048},
     "charge": {"ah": 1.0, "mah": 0.001, "amp-hour": 1.0, "amphour": 1.0},
     "angle": {"deg": 1.0, "degree": 1.0, "degrees": 1.0, "°": 1.0,
               "rad": 180.0 / math.pi, "radian": 180.0 / math.pi,
@@ -74,6 +78,7 @@ _BASE = {
     "length": "m", "mass": "kg", "speed": "m/s", "area": "m^2", "force": "N",
     "torque": "N.m", "power": "W", "energy": "J", "charge": "Ah",
     "angle": "deg", "time": "s", "dimensionless": "",
+    "current": "A", "voltage": "V", "pressure": "Pa", "acceleration": "m/s^2",
 }
 
 # Which dimension a caller-requested target unit belongs to.

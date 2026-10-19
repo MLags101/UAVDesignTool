@@ -1,5 +1,66 @@
 # UAV Design Organizer
 
+## Aerospace optimization workbench (engineering preview)
+
+The **Optimization** sidebar workspace adds requirements-first sizing and
+fixed-hardware studies for fixed wing, multirotor, conventional helicopter,
+lift-plus-cruise VTOL and suborbital rockets. It includes isolated solver workers,
+Pareto/sensitivity/scenario studies, portable run snapshots and report provenance.
+
+See the [workbench guide](docs/optimization.md),
+[model methods](docs/optimization-methods.md), and
+[qualification status](docs/optimization-validation.md). Model `0.4.0-preview`
+adds local refinement, a consistent wing-spar check and rocket-tube buckling.
+The preview is not yet the fully qualified major release: the published
+helicopter hover comparison and the clean-machine gate are still open.
+
+Use Python 3.12 and `pip install -r requirements-windows.txt` for the pinned Windows
+environment. Run `python -m unittest discover tests` for regression coverage.
+
+## AI design server (MCP)
+
+`uav_mcp` exposes the calculators and the optimization engine as a
+[Model Context Protocol](https://modelcontextprotocol.io) server, so an AI
+assistant can design with the same physics instead of estimating numbers itself.
+It needs no GUI and no PyQt6 at runtime. Step-by-step setup:
+[docs/mcp-quickstart.md](docs/mcp-quickstart.md).
+
+```bash
+pip install "mcp>=1.10"
+python -m uav_mcp                               # stdio, for Claude Code / Desktop
+python -m uav_mcp --transport streamable-http   # HTTP, for remote clients
+```
+
+**Claude Code** picks up the project's `.mcp.json` automatically when opened in
+this folder. To use it from anywhere:
+
+```bash
+claude mcp add --scope user uav-design -- python "C:/path/to/UAVDesignTool/uav_mcp"
+```
+
+**Claude Desktop** (`claude_desktop_config.json`):
+
+```json
+{"mcpServers": {"uav-design": {"command": "python",
+  "args": ["C:/path/to/UAVDesignTool/uav_mcp"]}}}
+```
+
+| Tool | Purpose |
+| --- | --- |
+| `list_calculators`, `describe_calculator`, `run_calculator` | The 31 bundled calculators; inputs accept unit suffixes (`"3 lb"`); plots return as images |
+| `describe_design_space`, `new_study` | Families, parameters, metrics and assumptions; editable study templates |
+| `evaluate_design`, `optimize_design` | Coupled mass/power/energy closure at a point, or optimized (single objective or Pareto) |
+| `sensitivity_analysis`, `uncertainty_analysis`, `sweep_design` | Design drivers (elasticities), Monte Carlo on assumptions, grid/LHS trade studies |
+| `save_study`, `load_study` | Exchange studies with a project's Optimization workspace |
+| `get_reference` | Methods, validation status and study format documentation |
+
+The server also offers a `design_uav` prompt that walks through
+requirements → sizing → optimization → sensitivity → subsystem checks.
+`optimize_design(project_dir=...)` saves the full run where the desktop app can
+open it. Extra tool folders (for example a project's `Tools/`) can be added with
+`UAV_MCP_TOOL_DIRS` (path-separator list). `UAV_MCP_MAX_EVALUATIONS` (default
+5000) and `UAV_MCP_MAX_SAMPLES` (default 2000) bound run time per call.
+
 A PyQt6 desktop application for running a UAV design programme through the
 Conceptual → Preliminary → Detail stage gates, plus 33 importable Python sizing
 tools for fixed-wing and multirotor aircraft.

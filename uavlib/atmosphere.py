@@ -22,6 +22,20 @@ TROPOPAUSE = 11000.0  # m
 T_TROPOPAUSE = T_0 - LAPSE * TROPOPAUSE            # 216.65 K
 P_TROPOPAUSE = P_0 * (T_TROPOPAUSE / T_0) ** (G / (R_AIR * LAPSE))
 
+# US Standard Atmosphere 1976, geopotential height. The last entry is the model
+# ceiling (about 86 km geometric). Rates are dT/dh in K/m on the layer above.
+GEOPOTENTIAL_LIMIT = 84852.0
+_LAYERS = (
+    (0.0, -0.0065),
+    (11000.0, 0.0),
+    (20000.0, 0.001),
+    (32000.0, 0.0028),
+    (47000.0, 0.0),
+    (51000.0, -0.0028),
+    (71000.0, -0.002),
+    (GEOPOTENTIAL_LIMIT, 0.0),
+)
+
 # Sutherland's law constants for air.
 MU_REF = 1.716e-5    # Pa*s at T_REF
 T_REF = 273.15       # K
@@ -62,18 +76,30 @@ def viscosity(temperature_k: float) -> float:
 
 
 def at(altitude_m: float) -> Atmosphere:
-    """Air properties at a geopotential altitude, valid to 20 km."""
-    h = max(0.0, float(altitude_m))
+    """Air properties at a geopotential altitude, from sea level to 84852 m.
 
-    if h <= TROPOPAUSE:
-        temperature = T_0 - LAPSE * h
-        pressure = P_0 * (temperature / T_0) ** (G / (R_AIR * LAPSE))
-    else:
-        # Isothermal layer from 11 km to 20 km.
-        temperature = T_TROPOPAUSE
-        pressure = P_TROPOPAUSE * math.exp(-G * (h - TROPOPAUSE)
-                                           / (R_AIR * T_TROPOPAUSE))
-
+    Negative altitudes are treated as sea level. Above the model ceiling the
+    call fails instead of extrapolating an isothermal stratosphere.
+    """
+    h = float(altitude_m)
+    if h < 0.0:
+        h = 0.0
+    if h > GEOPOTENTIAL_LIMIT:
+        raise ValueError(
+            f"Atmosphere model is valid from 0 to {GEOPOTENTIAL_LIMIT:.0f} m geopotential")
+    temperature, pressure = T_0, P_0
+    for (lower, rate), (upper, _next_rate) in zip(_LAYERS, _LAYERS[1:]):
+        if h <= lower:
+            break
+        delta = min(h, upper) - lower
+        temperature_top = temperature + rate * delta
+        if rate:
+            pressure *= (temperature_top / temperature) ** (-G / (R_AIR * rate))
+        else:
+            pressure *= math.exp(-G * delta / (R_AIR * temperature))
+        temperature = temperature_top
+        if h <= upper:
+            break
     density = pressure / (R_AIR * temperature)
     return Atmosphere(
         altitude=h,
@@ -112,15 +138,28 @@ def density_altitude(density_kg_m3: float) -> float:
     """The ISA altitude at which air has the given density, m.
 
     A hot day at a 1500 m field can fly like 3000 m; this is what actually
-    drives hover margin and takeoff distance.
+    drives hover margin and takeoff distance. Densities below the tropopause
+    invert the same layered model as :func:`at`, including the stratosphere.
+    Denser than sea-level air continues the tropospheric lapse below 0 m.
     """
-    ratio = density_kg_m3 / RHO_0
-    if ratio <= 0:
+    if density_kg_m3 <= 0:
         return float("inf")
-    # Invert rho/rho0 = (T/T0)^(g/(R*L) - 1) within the troposphere.
-    exponent = G / (R_AIR * LAPSE) - 1.0
-    temperature = T_0 * ratio ** (1.0 / exponent)
-    return (T_0 - temperature) / LAPSE
+    sea = at(0).density
+    if density_kg_m3 > sea:
+        ratio = density_kg_m3 / sea
+        exponent = G / (R_AIR * LAPSE) - 1.0
+        temperature = T_0 * ratio ** (1.0 / exponent)
+        return (T_0 - temperature) / LAPSE
+    if density_kg_m3 <= at(GEOPOTENTIAL_LIMIT).density:
+        return GEOPOTENTIAL_LIMIT
+    low, high = 0.0, GEOPOTENTIAL_LIMIT
+    for _ in range(60):
+        mid = 0.5 * (low + high)
+        if at(mid).density > density_kg_m3:
+            low = mid
+        else:
+            high = mid
+    return 0.5 * (low + high)
 
 
 def reynolds(velocity_ms: float, length_m: float, altitude_m: float = 0.0) -> float:

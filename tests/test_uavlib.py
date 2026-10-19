@@ -29,9 +29,15 @@ class TestAtmosphere(unittest.TestCase):
         self.assertAlmostEqual(atmosphere.at(0).sound_speed, 340.3, delta=0.5)
 
     def test_density_altitude_round_trip(self):
-        for altitude in (0, 1000, 3000, 8000):
+        for altitude in (0, 1000, 3000, 8000, 11000, 15000, 20000, 32000):
             back = atmosphere.density_altitude(atmosphere.density(altitude))
             self.assertAlmostEqual(back, altitude, delta=1.0)
+
+    def test_stratosphere_lapse_and_ceiling(self):
+        # 20 km is 216.65 K; +1 K/km through 32 km reaches 228.65 K.
+        self.assertAlmostEqual(atmosphere.at(32000).temperature, 228.65, delta=0.05)
+        with self.assertRaises(ValueError):
+            atmosphere.at(90000)
 
     def test_humid_air_is_less_dense(self):
         dry = atmosphere.density_from_conditions(101325, 30, 0.0)
@@ -122,6 +128,12 @@ class TestAero(unittest.TestCase):
     def test_roll_damping_is_negative(self):
         self.assertLess(aero.roll_damping(5.0, 8, 1.0), 0)
 
+    def test_low_mach_form_factor_is_not_a_drag_credit(self):
+        geometric = 1.0 + 0.6 / 0.3 * 0.12 + 100.0 * 0.12 ** 4
+        self.assertAlmostEqual(aero.form_factor_wing(0.12, mach=0.0), geometric, places=6)
+        self.assertAlmostEqual(aero.form_factor_wing(0.12, mach=0.05), geometric, places=6)
+        self.assertGreater(aero.form_factor_wing(0.12, mach=0.8), geometric)
+
 
 class TestPropulsion(unittest.TestCase):
     def test_real_hover_power_exceeds_ideal(self):
@@ -153,6 +165,17 @@ class TestPropulsion(unittest.TestCase):
         low = propulsion.static_thrust(0.254, 0.1194, 4000)
         high = propulsion.static_thrust(0.254, 0.1194, 8000)
         self.assertAlmostEqual(high / low, 4.0, places=4)
+
+    def test_spar_deflection_uses_member_length_and_cap_inertia(self):
+        lift, span, depth = 100.0, 2.0, 0.05
+        allowable, modulus, fraction = 200e6, 70e9, 0.02
+        caps = structures.required_spar_cap_area(lift, span, depth, allowable, modulus, fraction)
+        moment = structures.uniform_lift_root_moment(lift, span)
+        self.assertAlmostEqual(caps["stress"], moment / (allowable * depth), places=9)
+        half = span / 2.0
+        inertia = caps["deflection"] * depth ** 2 / 2.0
+        deflection = (lift / span) * half ** 4 / (8.0 * modulus * inertia)
+        self.assertAlmostEqual(deflection, fraction * half, places=6)
 
     def test_hover_efficiency_in_expected_band(self):
         thrust = 1.5 * 9.80665

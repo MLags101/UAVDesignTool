@@ -113,11 +113,18 @@ def skin_friction_coefficient(reynolds: float, laminar_fraction: float = 0.0) ->
 
 def form_factor_wing(thickness_ratio: float, mach: float = 0.0,
                      x_c_max: float = 0.3, sweep_max_deg: float = 0.0) -> float:
-    """Raymer form factor for a lifting surface."""
+    """Raymer form factor for a lifting surface.
+
+    The geometric term is the incompressible form factor. Raymer's Mach-sweep
+    term is a compressibility increment: below the speed where it exceeds 1 it
+    would cut low-speed UAV drag, so it is not applied as a credit.
+    """
     t_c = max(thickness_ratio, 0.01)
     sweep = math.radians(sweep_max_deg)
-    return ((1.0 + 0.6 / x_c_max * t_c + 100.0 * t_c ** 4)
-            * (1.34 * max(mach, 0.01) ** 0.18 * math.cos(sweep) ** 0.28))
+    geometric = 1.0 + 0.6 / x_c_max * t_c + 100.0 * t_c ** 4
+    mach = max(float(mach), 0.0)
+    compressible = 1.34 * mach ** 0.18 * math.cos(sweep) ** 0.28 if mach else 1.0
+    return geometric * max(1.0, compressible)
 
 
 def form_factor_body(fineness_ratio: float) -> float:

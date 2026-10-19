@@ -1,0 +1,11 @@
+{
+  "reference_type": "analytical Newton force balance, not transition flight validation",
+  "source": "https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/forces-in-a-climb/",
+  "assumptions": "Horizontal prescribed acceleration, constant vertical speed. Cruise propeller supplies positive axial thrust only; braking is assigned to the lift-system resultant, requiring vehicle attitude authority that is checked against a declared conceptual tilt bound.",
+  "cases": [
+    {"mass": 10, "wing_lift": 20, "drag": 3, "acceleration": 2, "expected_cruise_thrust": 23, "expected_lift_x": 0, "expected_lift_z": 78.0665},
+    {"mass": 10, "wing_lift": 20, "drag": 3, "acceleration": -2, "expected_cruise_thrust": 0, "expected_lift_x": -17, "expected_lift_z": 78.0665}
+  ],
+  "force_tolerance_N": 0.00000001,
+  "limits": "Does not prove moment trim, controllability, rotor-wing interference or transient inflow."
+}

@@ -1,0 +1,13 @@
+# Qualified with CPython 3.12 on Windows x64. See docs/optimization-validation.md.
+PyQt6==6.11.0
+PyQt6-Qt6==6.11.2
+PyQt6-sip==13.12.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+matplotlib==3.11.2
+numpy==2.3.5
+scipy==1.18.1
+pymoo==0.6.2
+moocore==0.3.2
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.7

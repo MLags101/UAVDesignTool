@@ -93,6 +93,17 @@ def hover_efficiency(thrust: float, power: float) -> float:
     return (thrust / G * 1000.0) / power
 
 
+def profile_power_factor(speed: float, hover_induced_speed: float) -> float:
+    """Mild growth of rotor profile power with forward speed.
+
+    The factor is 1 in hover and 1 + 0.03 (V / v_h)^2. It is an empirical
+    allowance shared by the multirotor tool and the optimization workbench,
+    not a blade-element integration.
+    """
+    reference = hover_induced_speed if hover_induced_speed > 0 else 1e-6
+    return 1.0 + 3.0 * (speed / reference) ** 2 / 100.0
+
+
 def forward_flight_power(mass: float, velocity: float, diameter: float,
                          count: int, flat_plate_area: float,
                          figure_of_merit: float = 0.65,
@@ -124,7 +135,7 @@ def forward_flight_power(mass: float, velocity: float, diameter: float,
     # Profile power is roughly constant in hover and grows mildly with speed.
     profile = (ideal_hover_power(weight, diameter, altitude, count)
                * (1.0 / max(0.05, figure_of_merit) - 1.0)
-               * (1.0 + 3.0 * (velocity / max(vh, 1e-6)) ** 2 / 100.0))
+               * profile_power_factor(velocity, vh))
 
     total = induced + parasite + profile
     return {"induced": induced, "parasite": parasite, "profile": profile,

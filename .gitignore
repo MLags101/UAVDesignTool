@@ -1,0 +1,8 @@
+.venv/
+.venv-comparisons/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+build/
+dist/
+tmp/pdfs/

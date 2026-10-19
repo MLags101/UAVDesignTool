@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "uav-design": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["-m", "uav_mcp"]
+    }
+  }
+}

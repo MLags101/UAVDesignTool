@@ -89,4 +89,27 @@
 {% endfor %}
 {% endif %}
 
+{% if optimization %}
+\section{Optimization studies}
+{% for study in optimization %}
+\subsection{ {{ study.name }} }
+Status: {{ study.status }}. Model version: {{ study.version }}.\\
+Input fingerprint: \texttt{ {{ study.hash }} }
+\subsubsection{Constraint margins}
+\begin{longtable}{p{0.65\textwidth}p{0.25\textwidth}}
+{% for item in study.margins %}
+{{ item.name }} & {{ item.value }} \\
+{% endfor %}
+\end{longtable}
+\subsubsection{Technology assumptions}
+\begin{longtable}{p{0.65\textwidth}p{0.25\textwidth}}
+{% for item in study.assumptions %}
+{{ item.name }} & {{ item.value }} \\
+{% endfor %}
+\end{longtable}
+{% for warning in study.warnings %}
+{{ warning }}\par
+{% endfor %}
+{% endfor %}
+{% endif %}
 \end{document}

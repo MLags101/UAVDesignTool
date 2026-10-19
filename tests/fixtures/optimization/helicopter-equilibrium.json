@@ -1,0 +1,13 @@
+{
+  "source": "https://ntrs.nasa.gov/api/citations/19790009640/downloads/19790009640.pdf",
+  "reference_type": "six-component steady rigid-body equilibrium; not flight-data calibration",
+  "convention": "x forward, y left, z up. Main rotor reaction is minus torque along disk normal; tail thrust points right. Hub moments act in the rotor disk plane.",
+  "cases": [
+    {"weight": 30, "speed": 0, "drag": 0, "hub_x": 0, "hub_z": 0.15},
+    {"weight": 30, "speed": 10, "drag": 2.14375, "hub_x": 0.02, "hub_z": 0.15}
+  ],
+  "expected_force_residual_N": [0, 0, 0],
+  "expected_moment_residual_Nm": [0, 0, 0],
+  "absolute_tolerance": 0.00001,
+  "scope": "Rigid rotor with collective/cyclic hub moments. No articulated flapping, aeroelasticity or dynamic control validation."
+}

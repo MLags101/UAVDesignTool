@@ -1,0 +1,10 @@
+{
+  "reference": "Independent RocketPy 1.13.0 GenericMotor/Flight vertical trajectory",
+  "source": "https://docs.rocketpy.org/en/latest/",
+  "reproduction": "tests/check_optional_adapters.py",
+  "inputs": {"takeoff_mass_kg": 1.0016857894892404, "propellant_mass_kg": 0.15, "burn_time_s": 2, "thrust_N": 125.0347875, "diameter_m": 0.08, "drag_coefficient": 0.45, "launch_elevation_m": 0, "inclination_deg": 90, "rail_length_m": 2},
+  "expected": {"apogee_m": 869.1223570894277},
+  "tolerances": {"apogee_absolute_m": 2.0, "mass_absolute_kg": 0.00000001},
+  "rationale": "Two metres permits the observed standard-atmosphere/gravity and guide implementation differences in this sub-kilometre, subsonic, vertical case. It is not a universal trajectory accuracy claim.",
+  "limitations": "Synthetic constant-thrust motor and fixed drag. Only vertical trajectory is compared; independent inertia/fin/nose inputs do not validate core CP, attitude, recovery or motor performance. Expected value was recorded before further core tuning."
+}

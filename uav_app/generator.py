@@ -1,6 +1,7 @@
 import datetime
 import os
 import zipfile
+import json
 
 import jinja2
 
@@ -108,6 +109,7 @@ def generate_overleaf_zip(model, selected_stages, options, export_path=None) -> 
         "include_page_numbers": options.get("include_page_numbers", True),
         "stages": [],
         "all_images": [],
+        "optimization": [],
     }
 
     include_images = options.get("include_images", True)
@@ -146,6 +148,26 @@ def generate_overleaf_zip(model, selected_stages, options, export_path=None) -> 
                         "path": zip_path,
                         "caption": escape_tex(img.get("caption", "")).replace("\n", " "),
                     })
+
+    for selected in model.data.optimization.get("applied", []):
+        if selected.get("stage") not in selected_stages:
+            continue
+        from uavlib.optimization.storage import project_path
+        try:
+            folder = project_path(project_dir, selected["run"])
+            result = json.loads((folder / "result.json").read_text(encoding="utf-8"))
+            study = json.loads((folder / "study.json").read_text(encoding="utf-8"))
+            candidate = result["candidates"][selected["candidate"]]
+            data["optimization"].append({
+                "name": escape_tex(selected["study"]), "hash": escape_tex(selected["input_hash"]),
+                "version": escape_tex(result.get("model_version", "unknown")),
+                "status": escape_tex(result.get("status", "unknown")),
+                "assumptions": [{"name": escape_tex(k), "value": escape_tex(v)} for k, v in study["vehicle"]["assumptions"].items()],
+                "margins": [{"name": escape_tex(k), "value": escape_tex(f"{v:.6g}")} for k, v in candidate["margins"].items()],
+                "warnings": [escape_tex(w) for w in candidate["warnings"]],
+            })
+        except (OSError, ValueError, KeyError, IndexError) as exc:
+            raise ValueError(f"Cannot export applied optimization provenance: {exc}") from exc
 
     tex_content = template.render(**data)
 

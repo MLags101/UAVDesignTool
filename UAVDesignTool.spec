@@ -1,4 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files, copy_metadata
 
 
 a = Analysis(
@@ -11,8 +12,8 @@ a = Analysis(
         # Shipped as source so it can be copied into project Tools/ folders
         # and still run under a plain Python interpreter.
         ('uavlib', 'uavlib'),
-    ],
-    hiddenimports=['matplotlib', 'matplotlib.backends.backend_agg'],
+    ] + collect_data_files('pymoo') + copy_metadata('moocore') + copy_metadata('pymoo'),
+    hiddenimports=['matplotlib', 'matplotlib.backends.backend_agg'] + collect_submodules('pymoo') + collect_submodules('moocore'),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -23,7 +24,7 @@ a = Analysis(
         'matplotlib.backends.backend_tkagg',
         'matplotlib.backends.backend_webagg',
         'tkinter', 'PyQt5', 'PySide2', 'PySide6',
-        'scipy', 'pandas', 'IPython', 'notebook',
+        'pandas', 'IPython', 'notebook',
     ],
     noarchive=False,
     optimize=0,

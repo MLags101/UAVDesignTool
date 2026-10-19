@@ -72,6 +72,7 @@ class UAVProject:
     image: Optional[str] = None
     tools: List[Dict[str, Any]] = field(default_factory=list)
     stages: Dict[str, UAVStage] = field(default_factory=dict)
+    optimization: Dict[str, Any] = field(default_factory=lambda: {"studies": [], "runs": [], "applied": []})
 
     def __post_init__(self):
         if not self.stages:
@@ -86,6 +87,7 @@ class ProjectModel:
         self.project_dir: Optional[str] = None
         self.json_path: Optional[str] = None
         self.data = UAVProject()
+        self._migration_pending = False
 
     # ------------------------------------------------------------------ paths
     @property
@@ -129,6 +131,7 @@ class ProjectModel:
     def create_project(self, name: str, author: str, summary: str,
                        img_path: str, project_folder: str):
         self.data = UAVProject(name=name, author=author, summary=summary)
+        self._migration_pending = False
 
         self.project_dir = os.path.join(project_folder, sanitize_filename(name))
         os.makedirs(self.project_dir, exist_ok=True)
@@ -144,10 +147,15 @@ class ProjectModel:
     def load_project(self, json_file: str):
         with open(json_file, "r", encoding="utf-8") as f:
             loaded = json.load(f)
+        version = loaded.get("version", 1)
+        if not isinstance(version, int) or version > 3 or version < 1:
+            raise ValueError("Unsupported project schema version; use a compatible application.")
 
         # Start from a clean project so loading a second one cannot inherit
         # stages, tools or images from the first.
         self.data = UAVProject()
+        self._migration_pending = version < 3
+        self.data.optimization = loaded.get("optimization") or {"studies": [], "runs": [], "applied": []}
         self.project_dir = os.path.dirname(os.path.abspath(json_file))
         self.json_path = os.path.abspath(json_file)
 
@@ -222,6 +230,10 @@ class ProjectModel:
     def save_project(self):
         if not self.project_dir:
             raise ValueError("Project directory is not set.")
+        if self._migration_pending and self.json_path and os.path.exists(self.json_path):
+            backup = self.json_path + ".v2.bak"
+            if not os.path.exists(backup):
+                shutil.copy2(self.json_path, backup)
 
         os.makedirs(self.images_dir, exist_ok=True)
 
@@ -238,7 +250,8 @@ class ProjectModel:
                     f.write(note.get("content", ""))
 
         save_data = {
-            "version": 2,
+            "version": 3,
+            "optimization": self.data.optimization,
             "name": self.data.name,
             "author": self.data.author,
             "summary": self.data.summary,
@@ -268,6 +281,7 @@ class ProjectModel:
         with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(save_data, f, indent=2, ensure_ascii=False)
         os.replace(tmp_path, self.json_path)
+        self._migration_pending = False
 
     def delete_note(self, stage_name: str, note_name: str):
         """Drop a note from the model and remove its markdown file."""

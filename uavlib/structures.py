@@ -121,6 +121,28 @@ def required_section_modulus(moment: float, allowable_stress: float,
     return moment * safety_factor / allowable_stress
 
 
+def required_spar_cap_area(lift: float, span: float, depth: float,
+                           allowable_stress: float, modulus: float,
+                           deflection_fraction: float) -> dict:
+    """Area of one of two spar caps, from stress and from deflection.
+
+    The root moment is the uniform-lift cantilever result. Both caps sit at
+    ``depth/2`` from the neutral axis, so I = A * depth^2 / 2. Tip deflection
+    uses the same uniform load, and the limit is ``deflection_fraction`` times
+    the semi-span — the member length, as for a rotor arm.
+    """
+    if min(lift, span, depth, allowable_stress, modulus, deflection_fraction) <= 0:
+        raise ValueError("Spar sizing inputs must be positive.")
+    moment = uniform_lift_root_moment(lift, span)
+    stress = moment / (allowable_stress * depth)
+    half = span / 2.0
+    load_per_length = lift / span
+    # delta = w L^4 / (8 E I) = deflection_fraction * L, I = A * depth^2 / 2.
+    second_moment = load_per_length * half ** 3 / (8.0 * modulus * deflection_fraction)
+    deflection = 2.0 * second_moment / depth ** 2
+    return {"stress": stress, "deflection": deflection}
+
+
 def margin_of_safety(applied_stress: float, allowable_stress: float) -> float:
     """Margin of safety. Zero means exactly at the limit; negative fails."""
     if applied_stress <= 0:

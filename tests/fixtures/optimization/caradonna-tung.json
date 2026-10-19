@@ -1,0 +1,24 @@
+{
+  "source": "https://ntrs.nasa.gov/citations/19820004169",
+  "document": "NASA-TM-81232, Caradonna and Tung (1981), experiment description printed page 2 and Figure 4",
+  "purpose": "Low-Mach hover collective comparison only; not torque, wake distribution, forward flight or whole-aircraft validation",
+  "inputs": {
+    "blade_count": 2,
+    "radius_to_chord": 6,
+    "tip_mach": 0.439,
+    "thrust_coefficient": 0.00459,
+    "section": "NACA 0012, untwisted, untapered"
+  },
+  "expected_collective_degrees": 8.0,
+  "absolute_tolerance_degrees": 1.0,
+  "tolerance_rationale": "Predeclared before comparison: conceptual uniform-inflow rigid rotor may differ by up to one degree; this is a screening criterion, not a measurement uncertainty",
+  "model_assumptions": {
+    "lift_slope_per_radian": 5.7,
+    "profile_cd": 0.012,
+    "root_cutout_fraction": 0.2,
+    "density_kg_m3": 1.225,
+    "sound_speed_m_s": 340.294,
+    "normalized_radius_m": 1.0
+  },
+  "limitations": "Dimensionless hover similarity uses normalized radius, not a reconstructed test rotor size. Half-degree experimental precone is neglected. No Reynolds-dependent airfoil data, tip loss, nonuniform wake or compressibility correction. No coefficients tuned to this case."
+}

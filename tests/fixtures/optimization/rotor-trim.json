@@ -1,0 +1,13 @@
+{
+  "reference_type": "analytical equilibrium, not vehicle flight-data validation",
+  "source": "https://ntrs.nasa.gov/api/citations/19790009640/downloads/19790009640.pdf",
+  "method": "Azimuth-integrated blade-element normal force and first moments, with uniform momentum inflow. Solve collective and two cyclic harmonics against thrust and hub moments.",
+  "inputs": {"thrust": 30.0, "rho": 1.225, "radius": 0.8, "rpm": 1300, "blades": 2, "chord": 0.06, "cd0": 0.012},
+  "cases": [
+    {"speed": 0.0, "roll_moment": 0.0, "pitch_moment": 0.0, "expected_cyclic": 0.0},
+    {"speed": 12.0, "roll_moment": 0.0, "pitch_moment": 0.0},
+    {"speed": 8.0, "roll_moment": 0.3, "pitch_moment": -0.2}
+  ],
+  "tolerances": {"thrust_N": 0.00003, "moment_Nm": 0.000024, "hover_cyclic_rad": 0.000001},
+  "domain_test": "Reverse flow at any blade element must be rejected rather than omitted."
+}

@@ -97,7 +97,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(title)
 
         subtitle = set_role(
-            QLabel("Stage-gated design record keeping for fixed wing and multirotor aircraft."),
+            QLabel("Stage-gated design records for fixed-wing, multirotor, helicopter, lift-plus-cruise and rocket vehicles."),
             "subtle")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(subtitle)
@@ -250,8 +250,10 @@ class MainWindow(QMainWindow):
         self.sidebar_list.setObjectName("sidebar")
         self.sidebar_list.setMinimumWidth(190)
         self.sidebar_list.setMaximumWidth(280)
-        for item in (*STAGE_NAMES, "Documentation"):
+        for item in (*STAGE_NAMES, "Documentation", "Optimization"):
             self.sidebar_list.addItem(item)
+        self.sidebar_list.item(self.sidebar_list.count() - 1).setToolTip(
+            "Size a vehicle from requirements, or evaluate hardware you already selected.")
         sidebar_layout.addWidget(self.sidebar_list)
 
         self.proj_img_label = QLabel()

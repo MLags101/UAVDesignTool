@@ -1,0 +1,16 @@
+{
+  "sources": [
+    "https://m-selig.web.engr.illinois.edu/props/volume-1/data/apcsf_10x7_kt0831_5003.txt",
+    "https://m-selig.web.engr.illinois.edu/props/volume-1/data/apcsf_10x7_kt0833_6006.txt",
+    "https://support.maxongroup.com/hc/en-us/articles/360005873794-Motor-constants"
+  ],
+  "description": "Selected measured UIUC APC Slow Flyer 10x7 points. RPM labels are test run nominal RPM. Motor and battery examples are synthetic circuit checks, not measurements of a matched drive.",
+  "diameter": 0.254,
+  "performance_map": [
+    {"rpm": 5003, "points": [[0.290,0.1245,0.0734],[0.318,0.1183,0.0715],[0.342,0.1145,0.0706],[0.370,0.1094,0.0691],[0.397,0.1037,0.0672]]},
+    {"rpm": 6006, "points": [[0.287,0.1321,0.0784],[0.312,0.1282,0.0777],[0.335,0.1234,0.0763],[0.355,0.1196,0.0752],[0.382,0.1138,0.0732],[0.409,0.1077,0.0711]]}
+  ],
+  "check": {"rpm": 5003, "J": 0.342, "CT": 0.1145, "CP": 0.0706, "eta_published": 0.554, "rho": 1.225},
+  "equations": {"T": "CT*rho*(rpm/60)^2*D^4", "P": "CP*rho*(rpm/60)^3*D^5", "eta": "J*CT/CP"},
+  "tolerances": {"dimensional_relative": 1e-8, "rpm_absolute": 0.0001, "published_efficiency_absolute": 0.001}
+}
