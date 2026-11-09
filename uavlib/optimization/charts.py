@@ -39,10 +39,19 @@ def chart_png(run, candidate, kind, axes=(0, 1)):
         ax.set(xlabel="Scaled objective 1; valid samples only", ylabel="Sample count")
     else:
         rows = candidate.get("endurance_history", []) if kind == "Endurance mission" else candidate["mission_history"]
-        rocket = bool(rows and "thrust" in rows[0])
-        field = "energy" if kind == "Mission energy" else "altitude" if rocket else "power"
+        jet = bool(rows and "fuel_used" in rows[0])
+        rocket = bool(rows and "thrust" in rows[0]) and not jet
+        if jet:
+            field, label = ("fuel_used", "Fuel used (kg)") if kind == "Mission energy" else ("mach", "Mach")
+        else:
+            field = "energy" if kind == "Mission energy" else "altitude" if rocket else "power"
+            label = "Energy (J)" if field == "energy" else "Altitude (m)" if rocket else "Shaft power (W)"
         ax.plot([r["time"] for r in rows], [r.get(field, 0) for r in rows])
-        ax.set(xlabel="Time (s)", ylabel="Energy (J)" if field == "energy" else "Altitude (m)" if rocket else "Shaft power (W)")
+        if jet and kind != "Mission energy":
+            twin = ax.twinx()
+            twin.plot([r["time"] for r in rows], [r["altitude"] for r in rows], color="#d9a323")
+            twin.set_ylabel("Altitude (m)", color="#d9a323")
+        ax.set(xlabel="Time (s)", ylabel=label)
     ax.set_title(kind)
     ax.grid(alpha=.2)
     buffer = BytesIO()

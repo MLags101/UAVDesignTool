@@ -5,7 +5,7 @@ import hashlib
 import json
 import math
 
-MODEL_VERSION = "0.4.0-preview"
+MODEL_VERSION = "0.5.0-preview"
 
 
 @dataclass
@@ -41,6 +41,9 @@ class MissionSegment:
     power: float | None = None
     end_speed: float | None = None
     end_altitude: float | None = None
+    # Jet missions may state Mach directly; None means use speed (m/s) or the design value.
+    mach: float | None = None
+    end_mach: float | None = None
 
 
 @dataclass
@@ -173,6 +176,8 @@ class StudyDefinition:
         for s in self.mission.segments:
             if s.duration <= 0 or s.speed < 0 or s.altitude < 0:
                 raise ValueError(f"Invalid mission segment: {s.name}")
+            if any(m is not None and not 0 <= m <= 2.0 for m in (s.mach, s.end_mach)):
+                raise ValueError(f"Segment Mach must be between 0 and 2: {s.name}")
         if len({s.name for s in self.mission.segments}) != len(self.mission.segments):
             raise ValueError("Mission segment names must be unique")
         if len({s.name for s in self.scenarios}) != len(self.scenarios):

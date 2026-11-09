@@ -183,3 +183,30 @@ def scatter_layout(title, positions, labels=None, circles=None,
     ax.set_ylabel("Y (m)")
     ax.set_title(title, fontsize=12, fontweight="bold")
     return figure(title, to_png(fig))
+
+
+def contour_chart(title, x_label, y_label, xs, ys, values, levels=None, paths=None,
+                  zero_line=True, width=7.0, height=5.0) -> dict:
+    """Filled contours of ``values[j][i]`` over ``xs`` x ``ys``.
+
+    ``paths`` = [(label, px, py), ...] overlays lines such as a climb schedule.
+    Missing values (None) are left blank.
+    """
+    if not available():
+        raise RuntimeError("matplotlib is not installed.")
+    import numpy as np
+    fig, ax = new_axes(width, height)
+    grid = np.array([[np.nan if v is None else v for v in row] for row in values], dtype=float)
+    filled = ax.contourf(xs, ys, grid, levels=levels or 14, cmap="viridis", alpha=0.85)
+    fig.colorbar(filled, ax=ax, shrink=0.9)
+    if zero_line and np.nanmin(grid) < 0 < np.nanmax(grid):
+        ax.contour(xs, ys, grid, levels=[0.0], colors="#e74c3c", linewidths=2.0)
+    for index, (label, px, py) in enumerate(paths or []):
+        ax.plot(px, py, color="white", linewidth=2.4)
+        ax.plot(px, py, color=PALETTE[(index + 1) % len(PALETTE)], linewidth=1.6, label=label)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    ax.set_title(title, fontsize=12, fontweight="bold")
+    if paths:
+        ax.legend(frameon=False, fontsize=9, loc="upper left")
+    return figure(title, to_png(fig))

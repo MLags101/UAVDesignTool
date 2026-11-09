@@ -33,13 +33,18 @@ tools to mental arithmetic, and quote their numbers, units and warnings.
 
 Two layers:
 1. Calculators (list_calculators -> describe_calculator -> run_calculator):
-   31 single-discipline tools for fixed wing, multirotor and shared subsystems
+   47 single-discipline tools for fixed wing, multirotor, supersonic jets and shared subsystems
    (wing sizing, constraint diagram, drag build-up, static margin, dynamic
    stability, V-n, takeoff, spar sizing, thrust/motor selection, battery sizing,
    motor-prop matching, current budget, mission energy...). Inputs accept unit
    suffixes such as '3 lb', '10 in', '5000 mAh'.
+   Supersonic (Mach <= 2): compressible flow, supersonic airfoil and wing
+   aerodynamics, Mach drag build-up, area rule, inlet design, turbojet cycle,
+   jet constraint diagram, excess power / energy climb, range, flight envelope,
+   skin heating, sonic boom, stability, panel flutter, jet weight estimate.
 2. Coupled design studies for fixed_wing, multirotor, helicopter, lift_cruise
-   (VTOL) and rocket: describe_design_space -> new_study -> edit the JSON ->
+   (VTOL), rocket and supersonic (small jet UAVs to Mach 2, turbojet or
+   afterburning turbojet): describe_design_space -> new_study -> edit the JSON ->
    evaluate_design -> optimize_design -> sensitivity_analysis /
    uncertainty_analysis / sweep_design. Studies are SI throughout.
 
@@ -106,7 +111,7 @@ async def describe_design_space(family: str = "") -> dict[str, Any]:
     """Reference for coupled studies: vehicle families, their design parameters
     and units, technology assumption defaults, available metrics, mission
     segment kinds, solvers and hardware component kinds. Pass a family
-    (fixed_wing, multirotor, helicopter, lift_cruise, rocket) to narrow it."""
+    (fixed_wing, multirotor, helicopter, lift_cruise, rocket, supersonic) to narrow it."""
     return await _offload(service.describe_design_space, family)
 
 
@@ -115,7 +120,8 @@ async def new_study(family: str = "fixed_wing", workflow: str = "requirements",
                     propulsion: str = "electric", name: str = "") -> dict[str, Any]:
     """Create a study template to edit. workflow 'requirements' sizes a vehicle
     to a mission (installed power and energy are outputs); 'hardware' analyses
-    supplied components. propulsion is 'electric' or 'fuel'.
+    supplied components. propulsion is 'electric' or 'fuel', or for the supersonic
+    family 'turbojet' or 'afterburning_turbojet'.
 
     The returned JSON has vehicle.parameters (geometry, payload, speed),
     vehicle.assumptions (technology: cd0, specific_energy, efficiencies...),
@@ -195,7 +201,8 @@ async def load_study(path: str) -> dict[str, Any]:
 
 @mcp.tool(structured_output=False)
 async def get_reference(topic: str) -> str:
-    """Read design documentation. topic: 'methods' (equations and model limits),
+    """Read design documentation. topic: 'supersonic' (jet tools and study family),
+    'methods' (equations and model limits),
     'validation' (what is and is not qualified), 'workbench' (study format,
     hardware records, trade studies), 'tutorials', or 'library' (overview)."""
     return await _offload(service.get_reference, topic)
@@ -216,7 +223,8 @@ def design_uav(mission: str, vehicle_type: str = "") -> str:
 Work like a conceptual design engineer and use the uav-design tools for every number:
 1. Turn the mission into quantified requirements (payload, endurance or range,
    cruise speed, altitude, stall/landing speed, climb, reserve). State assumptions.
-2. Pick the configuration (fixed_wing, multirotor, helicopter, lift_cruise) and justify it.
+2. Pick the configuration (fixed_wing, multirotor, helicopter, lift_cruise, or supersonic
+   for jet UAVs up to Mach 2) and justify it.
 3. Run the relevant calculators for first-order sizing (e.g. ConstraintDiagram,
    WingSizing, ThrustMotorSelection, BatterySizing, AtmosphereCalculator).
 4. Build a requirements study with new_study, encode the mission segments and
@@ -224,7 +232,10 @@ Work like a conceptual design engineer and use the uav-design tools for every nu
 5. Check margins, warnings and convergence. Run sensitivity_analysis to find the
    design drivers and uncertainty_analysis on the key technology assumptions.
 6. Verify subsystems on the chosen design with calculators (static margin, spar
-   sizing, V-n, motor-prop matching, current budget).
+   sizing, V-n, motor-prop matching, current budget). For supersonic designs also check
+   the transonic pinch (SpecificExcessPower), inlet recovery (InletDesign), skin
+   temperature against the airframe material (AerothermalSkinTemp), directional
+   stability at top speed (SupersonicStability), panel flutter, and report the sonic boom.
 7. Summarise the design in a table with units, the binding constraints, risks,
    and which results come from preview-status models (see get_reference('validation'))."""
 

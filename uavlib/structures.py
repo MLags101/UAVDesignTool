@@ -191,3 +191,29 @@ def deflection_note(deflection: float, length: float) -> str:
     if ratio > 0.02:
         return f"Moderate: {ratio * 100:.1f}% of length. Normal for a model wing."
     return f"Stiff: {ratio * 100:.1f}% of length."
+
+
+# ------------------------------------------------------- panel flutter
+PANEL_FLUTTER_CRITICAL = 512.0  # 2-D simply supported panel, piston theory
+
+
+def panel_flutter(mach, dynamic_pressure, panel_length, thickness, modulus,
+                  poisson=0.3, critical=PANEL_FLUTTER_CRITICAL):
+    """Piston-theory flutter parameter lambda = 2 q a^3 / (beta D) for a skin panel.
+
+    ``panel_length`` is the streamwise length between supports. Flutter is
+    predicted when lambda exceeds ``critical`` (512 for a 2-D simply supported
+    panel; clamped edges raise it). Piston theory is unconservative below about
+    Mach 1.4 -- treat it as a screen, not a clearance.
+    """
+    if mach <= 1.0:
+        raise ValueError("Panel flutter screening applies to supersonic flight.")
+    if min(dynamic_pressure, panel_length, thickness, modulus) <= 0:
+        raise ValueError("Panel flutter inputs must be positive.")
+    beta = math.sqrt(mach ** 2 - 1.0)
+    rigidity = modulus * thickness ** 3 / (12.0 * (1.0 - poisson ** 2))
+    parameter = 2.0 * dynamic_pressure * panel_length ** 3 / (beta * rigidity)
+    minimum = (2.0 * dynamic_pressure * panel_length ** 3 * 12.0 * (1.0 - poisson ** 2)
+               / (beta * modulus * critical)) ** (1.0 / 3.0)
+    return {"parameter": parameter, "critical": critical, "margin": critical / parameter - 1.0,
+            "minimum_thickness": minimum}

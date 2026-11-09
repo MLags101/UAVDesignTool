@@ -111,6 +111,11 @@ better the design:
 > Run the constraint diagram for a 3 kg aircraft with 11 m/s stall and 22 m/s
 > cruise, and show me the plot.
 
+> Design a supersonic target drone: 15 kg payload, Mach 1.8 dash for 5 minutes at
+> 12 km, runway takeoff under 200 m. Use the supersonic study family, then check
+> the transonic pinch, skin temperature for a carbon/epoxy airframe, and report the
+> sonic boom.
+
 ## 4. Review the results
 
 Ask the AI to:

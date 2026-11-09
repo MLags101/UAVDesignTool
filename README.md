@@ -17,6 +17,16 @@ helicopter hover comparison and the clean-machine gate are still open.
 Use Python 3.12 and `pip install -r requirements-windows.txt` for the pinned Windows
 environment. Run `python -m unittest discover tests` for regression coverage.
 
+## Supersonic jet UAVs (to Mach 2)
+
+`Supersonic Tools/` holds 16 calculators — compressible flow, supersonic airfoil and
+wing aerodynamics, Mach drag build-up, area rule, inlet design, turbojet cycle, jet
+constraint diagram, excess power and energy climb, range, flight envelope, skin
+heating, sonic boom, stability, panel flutter and weight estimate — and the
+Optimization workspace has a **Supersonic jet** family that sizes engine thrust,
+fuel and takeoff mass around a supersonic mission. See
+[docs/supersonic.md](docs/supersonic.md) for methods, limits and validation.
+
 ## AI design server (MCP)
 
 `uav_mcp` exposes the calculators and the optimization engine as a
@@ -47,7 +57,7 @@ claude mcp add --scope user uav-design -- python "C:/path/to/UAVDesignTool/uav_m
 
 | Tool | Purpose |
 | --- | --- |
-| `list_calculators`, `describe_calculator`, `run_calculator` | The 31 bundled calculators; inputs accept unit suffixes (`"3 lb"`); plots return as images |
+| `list_calculators`, `describe_calculator`, `run_calculator` | The 47 bundled calculators; inputs accept unit suffixes (`"3 lb"`); plots return as images |
 | `describe_design_space`, `new_study` | Families, parameters, metrics and assumptions; editable study templates |
 | `evaluate_design`, `optimize_design` | Coupled mass/power/energy closure at a point, or optimized (single objective or Pareto) |
 | `sensitivity_analysis`, `uncertainty_analysis`, `sweep_design` | Design drivers (elasticities), Monte Carlo on assumptions, grid/LHS trade studies |
@@ -151,7 +161,13 @@ interpreter after the project folder is moved elsewhere.
 | `propulsion` | Momentum theory, figure of merit, propeller coefficients, electric drive chain |
 | `battery` | Pack energy, C-rate, internal resistance and sag, wire gauge |
 | `geometry` | Wing planform and MAC, multirotor frame layouts, motor mixing |
-| `structures` | Section properties, beam bending, deflection, natural frequency |
+| `structures` | Section properties, beam bending, deflection, natural frequency, panel flutter |
+| `compressible` | Isentropic flow, normal/oblique shocks, Prandtl–Meyer, Taylor–Maccoll cones |
+| `supersonic` | Supersonic airfoils and wings, Mach drag build-up, configuration geometry, stability |
+| `area_rule` | Sears–Haack bodies and slender-body wave drag |
+| `airbreathing` | Turbojet cycle performance, inlet recovery, engine decks |
+| `jet_performance` | Excess power, envelope, energy climb, cruise, constraint equations |
+| `aerothermal`, `sonic_boom`, `jet_weights` | Skin heating, N-wave boom, jet UAV mass build-up |
 | `report` | Consistent output formatting |
 | `plotting` | matplotlib chart helpers |
 
@@ -321,5 +337,6 @@ says so. Notable limits:
 - Multirotor forward-flight power ignores rotor advance-ratio effects, so treat
   speeds above ~22 m/s as indicative.
 - Dynamic stability results depend heavily on the inertia estimates.
-#   U A V D e s i g n T o o l  
+#   U A V D e s i g n T o o l 
+ 
  

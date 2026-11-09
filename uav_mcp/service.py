@@ -30,9 +30,21 @@ from uavlib.optimization.schema import MODEL_VERSION  # noqa: E402
 from uavlib.optimization.storage import StudyStore  # noqa: E402
 from uavlib.optimization.templates import FAMILY_PARAMETERS, METRICS, PARAMETERS  # noqa: E402
 
-TOOL_DIRS = ["Fixed Wing Tools", "Multicopter Tools", "Shared Tools"]
+TOOL_DIRS = ["Fixed Wing Tools", "Multicopter Tools", "Shared Tools", "Supersonic Tools"]
 FAMILIES = tuple(FAMILY_PARAMETERS)
-SEGMENT_KINDS = ("cruise", "hover", "climb", "descent", "transition", "manual")
+SEGMENT_KINDS = {
+    "aircraft and rotorcraft": ("cruise", "hover", "climb", "descent", "transition", "manual"),
+    "supersonic": ("takeoff", "launch", "climb", "accelerate", "cruise", "descent"),
+}
+SUPERSONIC_MISSION_NOTES = (
+    "Segments may set mach/end_mach instead of speed. climb goes to end_altitude (default "
+    "cruise_altitude) and end_mach; accelerate goes to end_mach (default cruise_mach) at the "
+    "current altitude; their duration is ignored -- time comes from excess power. A cruise "
+    "segment with no mach and speed 0 flies at the design cruise_mach and cruise_altitude; "
+    "altitude 0 on other cruise segments holds the current altitude. descent burns idle fuel "
+    "to end_altitude over its duration.")
+PROPULSIONS = {"supersonic": ("turbojet", "afterburning_turbojet"),
+               "other": ("electric", "fuel")}
 SOLVERS = ("differential_evolution", "slsqp")
 COMPONENT_KINDS = {
     "motor": "max_power (shaft W); quantity counts installed motors",
@@ -50,6 +62,10 @@ COMPONENT_KINDS = {
     "frame": "arm_length, arm_diameter, arm_wall (m)",
     "rocket_motor": "thrust_curve ([[s, N], ...]), propellant_curve ([[s, kg remaining], ...])",
     "aerodynamics": "rocket only: cd_mach ([[Mach, CD], ...]), cp_mach ([[Mach, CP from nose m], ...])",
+    "jet_engine": ("supersonic only: sls_thrust (N, dry, per engine) with optional pressure_ratio, "
+                   "turbine_temperature (K), tt7_max (K), afterburner (bool); or deck: "
+                   "[{mach, altitude, max_thrust (N), tsfc (kg/N/s)}, ...] on a full grid. "
+                   "Component mass is the installed engine mass."),
 }
 REFERENCES = {
     "workbench": ("docs/optimization.md", "How studies, workflows, hardware records and trade studies work"),
@@ -57,6 +73,7 @@ REFERENCES = {
     "validation": ("docs/optimization-validation.md", "Qualification status and what has not been validated"),
     "tutorials": ("docs/optimization-tutorials.md", "Worked study examples"),
     "library": ("README.md", "Application overview and the uavlib physics library"),
+    "supersonic": ("docs/supersonic.md", "Supersonic jet tools and study family: methods, limits, validation"),
 }
 
 MAX_EVALUATIONS = int(os.environ.get("UAV_MCP_MAX_EVALUATIONS", "5000"))
@@ -228,7 +245,8 @@ def describe_design_space(family: str = "") -> dict[str, Any]:
             raise ValueError(f"Unknown family '{name}'. Choose from {', '.join(FAMILIES)}")
     out = {"model_version": MODEL_VERSION, "families": {}, "metrics": METRICS,
            "parameters": {k: v[0] for k, v in PARAMETERS.items()},
-           "mission_segment_kinds": SEGMENT_KINDS, "solvers": SOLVERS,
+           "mission_segment_kinds": SEGMENT_KINDS, "supersonic_mission_notes": SUPERSONIC_MISSION_NOTES,
+           "propulsion": PROPULSIONS, "solvers": SOLVERS,
            "requirement_senses": [">=", "<=", "=="], "objective_senses": ["min", "max"],
            "workflows": {"requirements": "Size the vehicle (mass, power, energy closed) to meet the "
                                           "mission. Installed power/energy are outputs.",
@@ -251,8 +269,11 @@ def new_study(family: str = "fixed_wing", workflow: str = "requirements",
               propulsion: str = "electric", name: str = "") -> dict[str, Any]:
     if workflow not in ("requirements", "hardware"):
         raise ValueError("workflow must be 'requirements' or 'hardware'")
-    if propulsion not in ("electric", "fuel"):
-        raise ValueError("propulsion must be 'electric' or 'fuel'")
+    allowed = PROPULSIONS["supersonic" if family == "supersonic" else "other"]
+    if family == "supersonic" and propulsion in PROPULSIONS["other"]:
+        propulsion = "afterburning_turbojet"
+    if propulsion not in allowed:
+        raise ValueError(f"propulsion for {family} must be one of {', '.join(allowed)}")
     study = template(family, workflow, propulsion)
     if name:
         study.name = name

@@ -22,9 +22,10 @@ from .views import accent
 
 
 FAMILIES = (("Fixed wing", "fixed_wing"), ("Multirotor", "multirotor"), ("Helicopter", "helicopter"),
-            ("Lift + cruise", "lift_cruise"), ("Rocket", "rocket"))
+            ("Lift + cruise", "lift_cruise"), ("Rocket", "rocket"), ("Supersonic jet", "supersonic"))
 WORKFLOWS = (("Requirements first", "requirements"), ("Hardware first", "hardware"))
-PROPULSIONS = (("Electric", "electric"), ("Fuel", "fuel"))
+PROPULSIONS = (("Electric", "electric"), ("Fuel", "fuel"), ("Turbojet (jet family)", "turbojet"),
+               ("Afterburning turbojet (jet family)", "afterburning_turbojet"))
 LAYOUTS = (("Quad X", "quad_x"), ("Quad +", "quad_plus"), ("Quad H", "quad_h"), ("Hex", "hex"),
            ("Y6 coaxial", "y6"), ("Octo", "octo"), ("X8 coaxial", "x8"), ("Tri", "tri"))
 SOLVERS = (("Differential evolution — global", "differential_evolution"),
@@ -56,6 +57,15 @@ PARAMETER_HELP = {
     "burn_time": "Duration of the constant-thrust burn when no thrust curve is supplied.",
     "recovery_area": "Parachute reference area.",
     "launch_altitude": "Geometric altitude of the launch site.",
+    "le_sweep": "Wing leading-edge sweep. Behind the Mach cone (subsonic edge) keeps suction.",
+    "taper": "Tip chord divided by root chord.",
+    "thickness_ratio": "Wing thickness-to-chord ratio; wave drag grows with its square.",
+    "vtail_area": "Vertical tail area; it loses effectiveness as 1/beta at high Mach.",
+    "cruise_mach": "Mach used by cruise segments without their own Mach, and by accelerate segments.",
+    "cruise_altitude": "Altitude used by design cruise segments and as the climb target.",
+    "pressure_ratio": "Turbojet compressor design pressure ratio.",
+    "turbine_temperature": "Maximum turbine inlet temperature, K.",
+    "cg_position": "Centre of gravity as a fraction of wing MAC aft of its leading edge.",
 }
 
 
@@ -201,8 +211,10 @@ class OptimizationWorkspace(QWidget):
 
         mission_page = QWidget()
         ml = QVBoxLayout(mission_page)
-        ml.addWidget(QLabel("Mission kinds: cruise, hover, climb, descent, transition, manual. Duration in seconds."))
-        self.mission = table(["Name", "Kind", "Duration s", "Speed m/s", "Altitude m", "Climb m/s", "End speed m/s", "End altitude m", "Manual power W"])
+        ml.addWidget(QLabel("Mission kinds: cruise, hover, climb, descent, transition, manual. Supersonic jet: "
+                            "takeoff, launch, climb, accelerate, cruise, descent (Mach columns optional). Duration in seconds."))
+        self.mission = table(["Name", "Kind", "Duration s", "Speed m/s", "Altitude m", "Climb m/s", "End speed m/s",
+                              "End altitude m", "Manual power W", "Mach", "End Mach"])
         ml.addWidget(self.mission)
         self._row_buttons(ml, self.mission)
         self.reserve = QLineEdit("0.2")
@@ -460,7 +472,9 @@ class OptimizationWorkspace(QWidget):
         put_rows(self.mission, [[s.name, s.kind, s.duration, s.speed, s.altitude, s.climb_rate,
                                 "" if s.end_speed is None else s.end_speed,
                                 "" if s.end_altitude is None else s.end_altitude,
-                                "" if s.power is None else s.power] for s in study.mission.segments])
+                                "" if s.power is None else s.power,
+                                "" if s.mach is None else s.mach,
+                                "" if s.end_mach is None else s.end_mach] for s in study.mission.segments])
         put_rows(self.hardware, [[c.id, c.kind, c.mass, c.quantity, c.position, json.dumps(c.properties), c.source, str(c.conceptual).lower()]
                                 for c in study.vehicle.components])
         put_rows(self.variables, [[v.key, v.initial, v.lower, v.upper, v.unit, v.scale, str(v.free).lower(), str(v.integer).lower()]
@@ -499,8 +513,9 @@ class OptimizationWorkspace(QWidget):
                                          for i, k, m, n, x, p, source, conceptual in rows(self.hardware)]
         data["mission"] = dict(reserve_fraction=self.number(self.reserve.text(), ""), segments=[
             dict(name=n, kind=k, duration=self.number(t, "s"), speed=self.number(v, "m/s"), altitude=self.number(h, "m"), climb_rate=self.number(c, "m/s"),
-                 end_speed=self.number(ev, "m/s") if ev else None, end_altitude=self.number(eh, "m") if eh else None, power=self.number(power, "W") if power else None)
-            for n, k, t, v, h, c, ev, eh, power in rows(self.mission)])
+                 end_speed=self.number(ev, "m/s") if ev else None, end_altitude=self.number(eh, "m") if eh else None, power=self.number(power, "W") if power else None,
+                 mach=self.number(mach, "") if mach else None, end_mach=self.number(end_mach, "") if end_mach else None)
+            for n, k, t, v, h, c, ev, eh, power, mach, end_mach in rows(self.mission)])
         data["variables"] = [dict(key=k, initial=self.number(i, u), lower=self.number(lo, u), upper=self.number(hi, u), unit=u,
                                    scale=self.number(s, u), free=self.boolean(f), integer=self.boolean(n))
                               for k, i, lo, hi, u, s, f, n in rows(self.variables)]

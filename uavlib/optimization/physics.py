@@ -26,6 +26,40 @@ def interpolate(points, x):
     return ys[i] + f * (ys[i + 1] - ys[i])
 
 
+def interpolate_grid(rows, x, y, column):
+    """Strict bilinear lookup in a rectangular table; no extrapolation.
+
+    ``rows`` are dicts sharing keys ``x``/``y`` axes plus value columns, e.g. an
+    engine deck ``{"mach": .., "altitude": .., "thrust": ..}`` looked up with
+    ``interpolate_grid(rows, ("mach", m), ("altitude", h), "thrust")``. Every
+    axis combination must be present exactly once.
+    """
+    (xkey, xv), (ykey, yv) = x, y
+    table = {}
+    for row in rows:
+        key = (float(row[xkey]), float(row[ykey]))
+        if key in table:
+            raise ValueError(f"Duplicate table point {xkey}={key[0]:g}, {ykey}={key[1]:g}")
+        value = float(row[column])
+        if not all(math.isfinite(v) for v in key + (value,)):
+            raise ValueError("Table values must be finite")
+        table[key] = value
+    xs = sorted({k[0] for k in table})
+    ys = sorted({k[1] for k in table})
+    if len(xs) < 2 or len(ys) < 2 or len(table) != len(xs) * len(ys):
+        raise ValueError(f"Table needs a complete grid of at least 2x2 {xkey}/{ykey} points")
+    if not (xs[0] <= xv <= xs[-1] and ys[0] <= yv <= ys[-1]):
+        raise ValueError(f"Operating point {xkey}={xv:g}, {ykey}={yv:g} outside table "
+                         f"[{xs[0]:g}, {xs[-1]:g}] x [{ys[0]:g}, {ys[-1]:g}]")
+    i = min(max(bisect.bisect_right(xs, xv) - 1, 0), len(xs) - 2)
+    j = min(max(bisect.bisect_right(ys, yv) - 1, 0), len(ys) - 2)
+    fx = (xv - xs[i]) / (xs[i + 1] - xs[i])
+    fy = (yv - ys[j]) / (ys[j + 1] - ys[j])
+    low = table[(xs[i], ys[j])] * (1 - fx) + table[(xs[i + 1], ys[j])] * fx
+    high = table[(xs[i], ys[j + 1])] * (1 - fx) + table[(xs[i + 1], ys[j + 1])] * fx
+    return low * (1 - fy) + high * fy
+
+
 def battery_operating_point(power, voltage, resistance):
     if power < 0 or voltage <= 0 or resistance < 0:
         raise ValueError("Invalid battery operating inputs")

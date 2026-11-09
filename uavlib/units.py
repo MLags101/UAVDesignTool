@@ -71,6 +71,26 @@ _FACTORS = {
              "min": 60.0, "mins": 60.0, "minute": 60.0, "minutes": 60.0,
              "h": 3600.0, "hr": 3600.0, "hour": 3600.0, "hours": 3600.0},
     "dimensionless": {"": 1.0, "%": 0.01, "pct": 0.01, "percent": 0.01},
+    # Thrust-specific fuel consumption. "1/h" is the weight-flow convention,
+    # numerically equal to lb/(lbf h).
+    "tsfc": {"kg/n/s": 1.0, "kg/(n.s)": 1.0, "kg/ns": 1.0,
+             "kg/n/h": 1 / 3600.0, "kg/(n.h)": 1 / 3600.0,
+             "mg/n/s": 1e-6, "mg/(n.s)": 1e-6, "g/kn/s": 1e-6, "g/(kn.s)": 1e-6,
+             "lb/lbf/h": 2.832545e-5, "lb/(lbf.h)": 2.832545e-5, "lb/lbf/hr": 2.832545e-5,
+             "1/h": 2.832545e-5, "1/hr": 2.832545e-5, "/h": 2.832545e-5},
+    # Temperature is affine; these entries only register the suffixes. The
+    # conversion itself uses _TEMPERATURE below.
+    "temperature": {"k": 1.0, "kelvin": 1.0, "c": 1.0, "degc": 1.0, "°c": 1.0,
+                    "f": 1.0, "degf": 1.0, "°f": 1.0, "r": 1.0, "degr": 1.0, "°r": 1.0},
+}
+
+# Temperature suffix -> (scale, offset) giving kelvin = value * scale + offset.
+_TEMPERATURE = {
+    "k": (1.0, 0.0), "kelvin": (1.0, 0.0),
+    "c": (1.0, 273.15), "degc": (1.0, 273.15), "°c": (1.0, 273.15),
+    "f": (5 / 9, 273.15 - 32 * 5 / 9), "degf": (5 / 9, 273.15 - 32 * 5 / 9),
+    "°f": (5 / 9, 273.15 - 32 * 5 / 9),
+    "r": (5 / 9, 0.0), "degr": (5 / 9, 0.0), "°r": (5 / 9, 0.0),
 }
 
 # The SI base unit each dimension is expressed in.
@@ -79,6 +99,7 @@ _BASE = {
     "torque": "N.m", "power": "W", "energy": "J", "charge": "Ah",
     "angle": "deg", "time": "s", "dimensionless": "",
     "current": "A", "voltage": "V", "pressure": "Pa", "acceleration": "m/s^2",
+    "tsfc": "kg/(N.s)", "temperature": "K",
 }
 
 # Which dimension a caller-requested target unit belongs to.
@@ -138,6 +159,9 @@ def parse(text, target_unit="", default=None):
         return value  # bare number keeps the target unit's meaning
 
     table = _FACTORS.get(dimension, {})
+    if dimension == "temperature" and suffix in _TEMPERATURE:
+        scale, offset = _TEMPERATURE[suffix]
+        return value * scale + offset
     if suffix in table:
         return value * table[suffix]
 
@@ -206,6 +230,9 @@ def to(value_si: float, unit: str) -> float:
     dimension = _DIMENSION_OF.get(suffix)
     if dimension is None:
         raise UnitError(f"Unknown unit '{unit}'.")
+    if dimension == "temperature":
+        scale, offset = _TEMPERATURE[suffix]
+        return (value_si - offset) / scale
     return value_si / _FACTORS[dimension][suffix]
 
 

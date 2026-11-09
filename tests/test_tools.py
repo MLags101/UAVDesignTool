@@ -15,7 +15,7 @@ if ROOT not in sys.path:
 
 from uav_app.tool_base import ToolError, ToolManager, normalise_result  # noqa: E402
 
-TOOL_DIRS = ["Fixed Wing Tools", "Multicopter Tools", "Shared Tools"]
+TOOL_DIRS = ["Fixed Wing Tools", "Multicopter Tools", "Shared Tools", "Supersonic Tools"]
 
 
 def tool_files():

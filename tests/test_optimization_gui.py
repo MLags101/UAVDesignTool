@@ -46,6 +46,17 @@ class TestWorkbenchGUI(unittest.TestCase):
         self.workspace.save_study()
         self.assertEqual(len(self.model.data.optimization["studies"]), 1)
 
+    def test_supersonic_template_and_mach_columns(self):
+        self.workspace.family.setCurrentIndex(self.workspace.family.findData("supersonic"))
+        self.workspace.new_template()
+        self.assertEqual(self.workspace.loaded.vehicle.family, "supersonic")
+        self.assertEqual(self.workspace.propulsion.currentData(), "afterburning_turbojet")
+        self.workspace.mission.item(4, 9).setText("0.8")
+        study = self.workspace.read_editor()
+        self.assertEqual(study.mission.segments[4].mach, 0.8)
+        self.assertIsNone(study.mission.segments[0].mach)
+        self.assertEqual(study.vehicle.parameters["turbine_temperature"], 1150.0)
+
     def test_mission_and_requirement_unit_suffixes(self):
         self.workspace.mission.item(0, 2).setText("10 min")
         self.workspace.mission.item(0, 3).setText("64.8 km/h")

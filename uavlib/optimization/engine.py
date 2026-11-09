@@ -7,6 +7,7 @@ import platform
 from .schema import EvaluationResult, OptimizationResult, StudyResult
 from .vehicles import REGISTRY
 from . import rocket  # register the built-in trajectory model
+from . import jet  # register the supersonic jet model
 
 
 def _parameters(study, design):
@@ -29,6 +30,7 @@ def _parameters(study, design):
         "rocket_motor": {"propellant_mass", "burn_time"},
         "wing": {"wing_area", "aspect_ratio"},
         "frame": {"arm_length", "arm_diameter", "arm_wall"},
+        "jet_engine": {"installed_thrust", "pressure_ratio", "turbine_temperature"},
     }
     if study.workflow == "hardware":
         for c in study.vehicle.components:
@@ -40,7 +42,8 @@ def _parameters(study, design):
         expected_unit = "m" if key in positions else model.parameters[key][0]
         if v.unit not in ("", expected_unit):
             raise ValueError(f"Variable {key} uses canonical unit {expected_unit or 'dimensionless'}, not {v.unit}")
-        if study.workflow == "requirements" and key in ("installed_power", "energy_capacity", "fuel_mass"):
+        if study.workflow == "requirements" and key in ("installed_power", "energy_capacity", "fuel_mass",
+                                                         "installed_thrust"):
             raise ValueError(f"{key} is derived by sizing; change the mission or technology assumptions instead")
         if key in locked:
             raise ValueError(f"Hardware locks {key}; remove it from free variables")
@@ -60,7 +63,9 @@ def _evaluate_one(study, design, sized=None):
     if model is None:
         raise ValueError(f"Unsupported vehicle family: {study.vehicle.family}")
     p = _parameters(study, design)
-    if sized and study.workflow == "requirements" and study.vehicle.family != "rocket":
+    if sized and study.workflow == "requirements" and hasattr(model, "fixed_sizing"):
+        p.update(model.fixed_sizing(sized))
+    elif sized and study.workflow == "requirements" and study.vehicle.family != "rocket":
         p.update(_fixed_power=sized.metrics["cruise_installed_power"], _fixed_lift_power=sized.metrics["installed_lift_power"], _fixed_energy=sized.metrics["energy_capacity"],
                  _fixed_fuel=sized.metrics["fuel_capacity"])
         if "_sized_cap_area" in sized.design:
@@ -76,7 +81,8 @@ def _evaluate_one(study, design, sized=None):
             rows = [row for row in result.mission_history if row.get("segment") == req.segment]
             field = {"peak_power": "power", "peak_current": "current", "min_voltage": "voltage",
                      "takeoff_mass": "mass", "energy_required": "energy", "max_acceleration": "acceleration",
-                     "max_dynamic_pressure": "dynamic_pressure", "max_mach": "mach"}.get(req.metric, req.metric)
+                     "max_dynamic_pressure": "dynamic_pressure", "max_mach": "mach",
+                     "transonic_excess_power": "ps", "installed_thrust": "thrust"}.get(req.metric, req.metric)
             if not rows or any(field not in row for row in rows):
                 raise ValueError(f"Metric {req.metric} unavailable in segment {req.segment}")
             values = [row[field] for row in rows]
@@ -138,14 +144,32 @@ def _evaluate(study, design=None, sized=None):
                     segment.speed *= scenario.speed_factor
                     if segment.end_speed is not None:
                         segment.end_speed *= scenario.speed_factor
-                alternate.vehicle.parameters["cruise_speed"] *= scenario.speed_factor
+                    if segment.mach is not None:
+                        segment.mach = min(segment.mach * scenario.speed_factor, 2.0)
+                    if segment.end_mach is not None:
+                        segment.end_mach = min(segment.end_mach * scenario.speed_factor, 2.0)
+                # Aircraft scale cruise speed; jets scale cruise Mach (held at the Mach 2 ceiling).
+                speed_key = "cruise_mach" if "cruise_mach" in alternate.vehicle.parameters else "cruise_speed"
+                cap = 2.0 if speed_key == "cruise_mach" else math.inf
+                if speed_key in alternate.vehicle.parameters:
+                    alternate.vehicle.parameters[speed_key] = min(
+                        alternate.vehicle.parameters[speed_key] * scenario.speed_factor, cap)
                 for variable in alternate.variables:
-                    if variable.key == "cruise_speed":
-                        variable.initial *= scenario.speed_factor
-                        variable.lower *= scenario.speed_factor
-                        variable.upper *= scenario.speed_factor
-                if "cruise_speed" in adjusted:
-                    adjusted["cruise_speed"] *= scenario.speed_factor
+                    if variable.key == speed_key:
+                        variable.initial = min(variable.initial * scenario.speed_factor, cap)
+                        variable.lower = min(variable.lower * scenario.speed_factor, cap)
+                        variable.upper = max(variable.upper * scenario.speed_factor, variable.initial)
+                if speed_key in adjusted:
+                    adjusted[speed_key] = min(adjusted[speed_key] * scenario.speed_factor, cap)
+                if "cruise_altitude" in alternate.vehicle.parameters:
+                    alternate.vehicle.parameters["cruise_altitude"] += scenario.altitude_offset
+                    for variable in alternate.variables:
+                        if variable.key == "cruise_altitude":
+                            variable.initial += scenario.altitude_offset
+                            variable.lower += scenario.altitude_offset
+                            variable.upper += scenario.altitude_offset
+                    if "cruise_altitude" in adjusted:
+                        adjusted["cruise_altitude"] += scenario.altitude_offset
                 other = _evaluate_one(alternate, adjusted, result)
                 if not other.valid:
                     raise ValueError(f"Invalid scenario {scenario.name}: {other.errors}")

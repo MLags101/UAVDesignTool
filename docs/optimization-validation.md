@@ -4,6 +4,11 @@ Status: **engineering preview, not the fully qualified major release**.
 
 ## Verified in this workspace
 
+- Supersonic jet family (model 0.5.0-preview): gas dynamics pinned to NACA
+  Report 1135, Sears–Haack wave drag, linear-theory limits, inlet recovery,
+  turbojet scaling, a Concorde boom comparison and requirements-to-hardware
+  forward equivalence. Details and open items in [supersonic.md](supersonic.md).
+
 - Original 70 physics/tool regressions retained.
 - Expanded suite: 127 tests passing, including offscreen Qt integration.
 - Analytical checks: atmosphere reference points, momentum-theory hover power,
